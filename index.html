@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Crowd Counter</title>
+    <style>
+        :root {
+            --bg-dark: #000000;
+            --primary: #1B3C53;
+            --secondary: #234C6A;
+            --accent: #456882;
+            --light: #D2C1B6;
+            --text-primary: #ffffff;
+            --text-secondary: #D2C1B6;
+            --card-bg: rgba(27, 60, 83, 0.3);
+            --upload-bg: rgba(35, 76, 106, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-dark);
+            background-image: 
+                radial-gradient(at 20% 10%, rgba(27, 60, 83, 0.4) 0px, transparent 50%),
+                radial-gradient(at 80% 90%, rgba(35, 76, 106, 0.3) 0px, transparent 50%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            color: var(--text-primary);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        h1 {
+            font-size: 3.5em;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--accent) 50%, var(--light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 15px;
+            letter-spacing: -1.5px;
+            text-shadow: 0 0 40px rgba(35, 76, 106, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            color: var(--text-secondary);
+            font-weight: 400;
+            letter-spacing: 0.5px;
+        }
+
+        .main-card {
+            background: rgba(27, 60, 83, 0.15);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(69, 104, 130, 0.2);
+            border-radius: 24px;
+            padding: 50px;
+            box-shadow: 
+                0 0 60px rgba(27, 60, 83, 0.3),
+                0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .upload-zone {
+            border: 2px dashed var(--accent);
+            border-radius: 20px;
+            padding: 80px 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: var(--upload-bg);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-zone::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(35, 76, 106, 0.2), rgba(69, 104, 130, 0.2));
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--light);
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(69, 104, 130, 0.4);
+        }
+
+        .upload-zone:hover::before {
+            opacity: 1;
+        }
+
+        .upload-zone.dragover {
+            background: rgba(69, 104, 130, 0.3);
+            border-color: var(--light);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 5em;
+            margin-bottom: 25px;
+            filter: drop-shadow(0 4px 12px rgba(69, 104, 130, 0.5));
+        }
+
+        .upload-text {
+            font-size: 1.4em;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .upload-subtext {
+            color: var(--text-secondary);
+            font-size: 1em;
+            opacity: 0.8;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* Analysis method selector */
+        .method-selector {
+            display: none;
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .method-selector.visible {
+            display: block;
+        }
+
+        .method-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .method-btn {
+            padding: 15px 30px;
+            border: 2px solid var(--accent);
+            border-radius: 12px;
+            background: rgba(27, 60, 83, 0.3);
+            color: var(--text-primary);
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .method-btn:hover {
+            background: rgba(35, 76, 106, 0.5);
+            border-color: var(--light);
+            transform: translateY(-2px);
+        }
+
+        .method-btn.selected {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-color: var(--light);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 60px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(69, 104, 130, 0.2);
+            border-top: 4px solid var(--accent);
+            border-radius: 50%;
+            width: 70px;
+            height: 70px;
+            animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            margin: 0 auto 30px;
+            box-shadow: 0 0 30px rgba(69, 104, 130, 0.3);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading p {
+            color: var(--text-secondary);
+            font-size: 1.2em;
+            font-weight: 500;
+        }
+
+        .error-message {
+            display: none;
+            background: rgba(220, 38, 38, 0.15);
+            border: 1px solid rgba(220, 38, 38, 0.3);
+            color: #fca5a5;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 25px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .results-section {
+            display: none;
+            margin-top: 50px;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .result-card {
+            background: rgba(27, 60, 83, 0.3);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(69, 104, 130, 0.3);
+            border-radius: 20px;
+            padding: 25px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .result-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent);
+            box-shadow: 0 8px 30px rgba(35, 76, 106, 0.4);
+        }
+
+        .result-card h3 {
+            background: linear-gradient(135deg, var(--secondary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            font-weight: 700;
+        }
+
+        .result-image {
+            width: 100%;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .count-display {
+            background: linear-gradient(135deg, rgba(27, 60, 83, 0.4), rgba(35, 76, 106, 0.3));
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(69, 104, 130, 0.4);
+            padding: 50px 40px;
+            border-radius: 20px;
+            text-align: center;
+            margin-top: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .count-display::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent,
+                rgba(69, 104, 130, 0.1),
+                transparent
+            );
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .count-label {
+            font-size: 1.1em;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+            opacity: 0.9;
+        }
+
+        .count-number {
+            font-size: 5.5em;
+            font-weight: 900;
+            margin: 30px 0;
+            background: linear-gradient(135deg, var(--secondary), var(--accent), var(--light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            position: relative;
+            z-index: 1;
+            filter: drop-shadow(0 0 20px rgba(69, 104, 130, 0.5));
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 40px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-item {
+            background: rgba(27, 60, 83, 0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(69, 104, 130, 0.3);
+            padding: 25px 20px;
+            border-radius: 16px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .stat-item:hover {
+            border-color: var(--accent);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(35, 76, 106, 0.3);
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: var(--light);
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            opacity: 0.8;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 40px;
+        }
+
+        button {
+            padding: 18px 45px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.05em;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--text-primary);
+            box-shadow: 0 4px 20px rgba(35, 76, 106, 0.4);
+            border: 1px solid rgba(69, 104, 130, 0.3);
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(35, 76, 106, 0.6);
+            border-color: var(--accent);
+        }
+
+        .btn-secondary {
+            background: rgba(27, 60, 83, 0.5);
+            color: var(--light);
+            border: 1px solid rgba(69, 104, 130, 0.5);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(35, 76, 106, 0.6);
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(35, 76, 106, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 2.5em;
+            }
+
+            .count-number {
+                font-size: 4em;
+            }
+
+            .main-card {
+                padding: 30px 20px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .method-buttons {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+
+        .glow-pulse {
+            animation: glow-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes glow-pulse {
+            0%, 100% { 
+                filter: drop-shadow(0 0 10px rgba(69, 104, 130, 0.5)); 
+            }
+            50% { 
+                filter: drop-shadow(0 0 25px rgba(69, 104, 130, 0.8)); 
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 class="glow-pulse">👥 Crowd Counter</h1>
+            <p class="subtitle">Advanced neural network for precise crowd analysis</p>
+        </header>
+
+        <div class="main-card">
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-icon">📸</div>
+                <div class="upload-text">Click to upload or drag & drop</div>
+                <div class="upload-subtext">Supports JPG, PNG • Max 10MB</div>
+                <input type="file" id="fileInput" accept="image/*">
+            </div>
+
+            <!-- Method selector appears after file selection -->
+            <div class="method-selector" id="methodSelector">
+                <h3 style="color: var(--text-primary); margin-bottom: 15px;">Choose Analysis Method:</h3>
+                <div class="method-buttons">
+                    <button class="method-btn selected" onclick="selectMethod('standard')">
+                        📊 Standard<br><small style="opacity: 0.7;">Best for crowds <= 100</small>
+                    </button>
+                    <button class="method-btn" onclick="selectMethod('patch')">
+                        🔍 Patch-Based<br><small style="opacity: 0.7;">For large crowds > 100</small>
+                    </button>
+                </div>
+                <button class="btn-primary" style="margin-top: 25px;" onclick="startAnalysis()">
+                    Start Analysis
+                </button>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p id="loadingText">Analyzing crowd patterns...</p>
+            </div>
+
+            <div class="error-message" id="errorMessage"></div>
+
+            <div class="results-section" id="resultsSection">
+                <div class="results-grid">
+                    <div class="result-card">
+                        <h3>📷 Original Image</h3>
+                        <img id="originalImage" class="result-image" alt="Original">
+                    </div>
+                    <div class="result-card">
+                        <h3>🔥 Density Heatmap</h3>
+                        <img id="heatmapImage" class="result-image" alt="Heatmap">
+                    </div>
+                </div>
+
+                <div class="count-display">
+                    <div class="count-label">People Detected</div>
+                    <div class="count-number" id="countNumber">0</div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="confidence">0%</div>
+                            <div class="stat-label">Confidence</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="processingTime">0ms</div>
+                            <div class="stat-label">Processing Time</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="imageSize">0×0</div>
+                            <div class="stat-label">Resolution</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-primary" onclick="location.reload()">
+                        Analyze Another Image
+                    </button>
+                    <button class="btn-secondary" onclick="downloadResults()">
+                        Download Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000';
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const methodSelector = document.getElementById('methodSelector');
+        const loading = document.getElementById('loading');
+        const loadingText = document.getElementById('loadingText');
+        const resultsSection = document.getElementById('resultsSection');
+        const errorMessage = document.getElementById('errorMessage');
+
+        let currentResults = null;
+        let currentFile = null;
+        let selectedMethod = 'standard';
+
+        uploadZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                currentFile = file;
+                showMethodSelector();
+            }
+        });
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                currentFile = file;
+                fileInput.files = e.dataTransfer.files;
+                showMethodSelector();
+            }
+        });
+
+        function showMethodSelector() {
+            uploadZone.style.display = 'none';
+            methodSelector.classList.add('visible');
+        }
+
+        function selectMethod(method) {
+            selectedMethod = method;
+            document.querySelectorAll('.method-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.target.closest('.method-btn').classList.add('selected');
+        }
+
+        async function startAnalysis() {
+            if (!currentFile) {
+                showError('Please select an image first');
+                return;
+            }
+
+            if (currentFile.size > 10 * 1024 * 1024) {
+                showError('File size must be less than 10MB');
+                return;
+            }
+
+            methodSelector.classList.remove('visible');
+            loading.style.display = 'block';
+            errorMessage.style.display = 'none';
+            resultsSection.style.display = 'none';
+
+            if (selectedMethod === 'patch') {
+                loadingText.textContent = 'Processing patches for large crowd...';
+                await processLargeCrowd();
+            } else {
+                loadingText.textContent = 'Analyzing crowd patterns...';
+                await processStandardImage();
+            }
+        }
+
+        async function processStandardImage() {
+            const startTime = Date.now();
+
+            try {
+                const formData = new FormData();
+                formData.append('image', currentFile);
+
+                const response = await fetch(`${API_URL}/predict`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Prediction failed');
+                }
+
+                const data = await response.json();
+                const processingTime = Date.now() - startTime;
+
+                displayResults(data, processingTime);
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Failed to analyze image. Make sure the API server is running.');
+                uploadZone.style.display = 'block';
+                loading.style.display = 'none';
+            }
+        }
+
+        async function processLargeCrowd() {
+            const startTime = Date.now();
+
+            try {
+                const formData = new FormData();
+                formData.append('image', currentFile);
+                formData.append('patch_size', '384');
+                formData.append('overlap', '96');
+
+                const response = await fetch(`${API_URL}/predict_large_crowd`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Patch-based prediction failed');
+                }
+
+                const data = await response.json();
+                const processingTime = data.processing_time ? 
+                    parseFloat(data.processing_time.replace('s', '')) * 1000 : 
+                    Date.now() - startTime;
+
+                displayResults(data, processingTime);
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Patch-based analysis failed: ' + error.message);
+                uploadZone.style.display = 'block';
+                loading.style.display = 'none';
+            }
+        }
+
+        function displayResults(data, processingTime) {
+            currentResults = data;
+
+            loading.style.display = 'none';
+            resultsSection.style.display = 'block';
+
+            document.getElementById('originalImage').src = 'data:image/png;base64,' + data.original_image;
+            document.getElementById('heatmapImage').src = 'data:image/png;base64,' + data.heatmap;
+
+            animateCount(data.count);
+
+            document.getElementById('confidence').textContent = 
+                Math.round(data.confidence * 100) + '%';
+            document.getElementById('processingTime').textContent = 
+                Math.round(processingTime) + 'ms';
+            document.getElementById('imageSize').textContent = 
+                `${data.image_size.width}×${data.image_size.height}`;
+        }
+
+        function animateCount(targetCount) {
+            const element = document.getElementById('countNumber');
+            const duration = 1500;
+            const steps = 40;
+            const increment = targetCount / steps;
+            let current = 0;
+
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= targetCount) {
+                    element.textContent = targetCount.toLocaleString();
+                    clearInterval(timer);
+                } else {
+                    element.textContent = Math.floor(current).toLocaleString();
+                }
+            }, duration / steps);
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            setTimeout(() => {
+                errorMessage.style.display = 'none';
+            }, 5000);
+        }
+
+        function downloadResults() {
+            if (!currentResults) return;
+
+            const report = {
+                count: currentResults.count,
+                confidence: currentResults.confidence,
+                timestamp: currentResults.timestamp,
+                imageSize: currentResults.image_size,
+                method: currentResults.method || 'standard'
+            };
+
+            const blob = new Blob([JSON.stringify(report, null, 2)], 
+                { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'crowd_count_report.json';
+            a.click();
+        }
+
+        // Check API health on load
+        fetch(`${API_URL}/health`)
+            .then(res => res.json())
+            .then(data => {
+                console.log('✅ API Status:', data);
+            })
+            .catch(() => {
+                showError('⚠️ API server not responding. Please start the backend.');
+            });
+    </script>
+</body>
+</html>

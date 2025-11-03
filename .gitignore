@@ -1,0 +1,82 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv
+
+# PyTorch Models (large files)
+*.pth
+*.pt
+*.ckpt
+*.pkl
+*.h5
+*.weights
+
+# Dataset folders (too large for git)
+data/train/images/
+data/test/images/
+data/unlabeled/images/
+
+# Keep annotation files but ignore images
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.tiff
+
+# Outputs
+outputs/*.pth
+outputs/*.pt
+outputs/result_*.png
+outputs/checkpoint_*.pth
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
+
+# Flask
+instance/
+.webassets-cache
+
+# Environment variables
+.env
+.env.local
+
+# Temporary files
+*.tmp
+*.cache
